@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strings"
+	"sync"
 
 	"golang.org/x/net/websocket"
 
@@ -27,15 +28,10 @@ type Device struct {
 	}
 }
 
-type Update struct {
-	Devices []string
-	Values  struct {
-		Timestamp int
-		State     string
-	}
+var devices struct {
+	sync.Mutex
+	d map[string]Device
 }
-
-var devices map[string]Device
 
 func turnLightOn() {
 	log.Println("Turn Light On")
@@ -60,10 +56,12 @@ func listenForUpdates(ws *websocket.Conn, updates chan string) {
 				log.Fatal(err)
 			}
 
+			devices.Lock()
+			defer devices.Unlock()
 			name := d.Devices[0]
 			// We have to compare here for change I think
 
-			devices[name] = d
+			devices.d[name] = d
 		}
 
 		//updates <- message
@@ -98,19 +96,19 @@ func initalValues(ws *websocket.Conn) {
 
 	for _, d := range ds {
 		name := d.Devices[0]
-		devices[name] = d
+		devices.d[name] = d
 	}
 
 }
 
 func debug() {
-	for _, d := range devices {
+	for _, d := range devices.d {
 		fmt.Printf("Device: %s %s\n", d.Devices[0], d.Values.State)
 	}
 }
 
 func main() {
-	devices = make(map[string]Device)
+	devices.d = make(map[string]Device)
 
 	ws, err := websocket.Dial(url, "", origin)
 	if err != nil {
