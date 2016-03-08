@@ -1,8 +1,11 @@
 # hkoutlet
+Turns [pilight](https://www.pilight.org/) outlets into HomeKit accessory using 
+[HomeControl](https://github.com/brutella/hc).
 
-[HomeControl](https://github.com/brutella/hc)
+I am using Intertechno IT-1500 outlets together with a 433Mhz sender on the Raspberry Pi.
 
-[Outlet](https://github.com/brutella/hc/blob/master/model/accessory/outlet.go)
+![pi with 433](pi.jpg)
+
 
 # TODO
 * pretty pin dialog like homebridge, that works with cam
@@ -10,7 +13,7 @@
 * Remove unneeded map
 
 # License
-CC4-by Yannick Weiss
+CC BY Yannick Weiss
 
 # Pilight API
 ## Get Config
@@ -30,4 +33,6 @@ What does type 1 mean in the update?
 
 
 # Credits
-https://github.com/knalli/homebridge-pilight
+* https://github.com/knalli/homebridge-pilight
+* https://github.com/brutella/hc
+* https://www.pilight.org/
