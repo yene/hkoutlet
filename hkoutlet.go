@@ -7,7 +7,6 @@ import (
 	"log"
 	"strings"
 	"sync"
-	"time"
 
 	"golang.org/x/net/websocket"
 
@@ -34,7 +33,6 @@ var devices struct {
 }
 
 func turnOn(ws *websocket.Conn, name string) {
-	//log.Println("Turn Light On", name)
 	err := websocket.Message.Send(ws, "{\"action\":\"control\",\"code\":{\"device\":\""+name+"\",\"state\":\"on\"}}")
 	if err != nil {
 		log.Fatal(err)
@@ -42,7 +40,6 @@ func turnOn(ws *websocket.Conn, name string) {
 }
 
 func turnOff(ws *websocket.Conn, name string) {
-	//log.Println("Turn Light Off", name)
 	err := websocket.Message.Send(ws, "{\"action\":\"control\",\"code\":{\"device\":\""+name+"\",\"state\":\"off\"}}")
 	if err != nil {
 		log.Fatal(err)
@@ -54,8 +51,7 @@ func listenForUpdates(ws *websocket.Conn) {
 		var message string
 		err := websocket.Message.Receive(ws, &message)
 		if err != nil {
-			fmt.Printf("Error::: %s\n", err.Error())
-			return
+			log.Fatal("Error::: %s\n", err.Error())
 		}
 
 		if strings.Contains(message, "\"origin\":\"update\"") {
@@ -64,14 +60,14 @@ func listenForUpdates(ws *websocket.Conn) {
 				log.Fatal(err)
 			}
 
-			devices.Lock()
-			defer devices.Unlock()
 			name := d.Devices[0]
+			devices.Lock()
 			devices.d[name] = d
 			devices.o[name].SetOn(isOn(d.Values.State))
+			devices.Unlock()
 		}
+
 	}
-	fmt.Println("I did exit")
 }
 
 func getConfig(ws *websocket.Conn) {
@@ -163,10 +159,6 @@ func main() {
 	})
 
 	t.Start()
-
-	//go forever()
-	//select {} // block forever
-
 }
 
 func isOn(s string) bool {
@@ -174,11 +166,5 @@ func isOn(s string) bool {
 		return true
 	} else {
 		return false
-	}
-}
-
-func forever() {
-	for {
-		time.Sleep(time.Second)
 	}
 }

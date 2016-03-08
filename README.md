@@ -4,6 +4,11 @@
 
 [Outlet](https://github.com/brutella/hc/blob/master/model/accessory/outlet.go)
 
+# TODO
+* pretty pin dialog like homebridge, that works with cam
+* use built in JSON methods https://github.com/golang-samples/websocket/blob/master/websocket-chat/src/chat/client.go#L101
+* Remove unneeded map
+
 # License
 CC4-by Yannick Weiss
 
