@@ -2,6 +2,8 @@
 
 [HomeControl](https://github.com/brutella/hc)
 
+[Outlet](https://github.com/brutella/hc/blob/master/model/accessory/outlet.go)
+
 # License
 CC4-by Yannick Weiss
 

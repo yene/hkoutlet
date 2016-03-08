@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/net/websocket"
 
@@ -29,19 +30,20 @@ type Device struct {
 var devices struct {
 	sync.Mutex
 	d map[string]Device
+	o map[string]*accessory.Outlet
 }
 
-func turnOn(ws *websocket.Conn) {
-	log.Println("Turn Light On")
-	err := websocket.Message.Send(ws, "{\"action\":\"control\",\"code\":{\"device\":\"Switch1\",\"state\":\"on\"}}")
+func turnOn(ws *websocket.Conn, name string) {
+	//log.Println("Turn Light On", name)
+	err := websocket.Message.Send(ws, "{\"action\":\"control\",\"code\":{\"device\":\""+name+"\",\"state\":\"on\"}}")
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func turnOff(ws *websocket.Conn) {
-	log.Println("Turn Light Off")
-	err := websocket.Message.Send(ws, "{\"action\":\"control\",\"code\":{\"device\":\"Switch1\",\"state\":\"off\"}}")
+func turnOff(ws *websocket.Conn, name string) {
+	//log.Println("Turn Light Off", name)
+	err := websocket.Message.Send(ws, "{\"action\":\"control\",\"code\":{\"device\":\""+name+"\",\"state\":\"off\"}}")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,10 +67,11 @@ func listenForUpdates(ws *websocket.Conn) {
 			devices.Lock()
 			defer devices.Unlock()
 			name := d.Devices[0]
-			// We have to compare here for change I think
 			devices.d[name] = d
+			devices.o[name].SetOn(isOn(d.Values.State))
 		}
 	}
+	fmt.Println("I did exit")
 }
 
 func getConfig(ws *websocket.Conn) {
@@ -100,7 +103,6 @@ func initalValues(ws *websocket.Conn) {
 		name := d.Devices[0]
 		devices.d[name] = d
 	}
-	debug()
 }
 
 func debug() {
@@ -111,7 +113,9 @@ func debug() {
 
 func main() {
 	devices.d = make(map[string]Device)
+	devices.o = make(map[string]*accessory.Outlet)
 
+	// TODO: add and test reconnect
 	ws, err := websocket.Dial(url, "", origin)
 	if err != nil {
 		log.Fatal(err)
@@ -121,26 +125,32 @@ func main() {
 	getConfig(ws)
 	initalValues(ws)
 
-	info := model.Info{
-		Name:         "Outlet",
-		Manufacturer: "Intertechno",
-		Model:        "IT-1500",
-	}
+	outlets := make([]*accessory.Accessory, 0)
 
-	// https://github.com/brutella/hc/blob/master/model/accessory/outlet.go
-	outlet := accessory.NewOutlet(info)
-	// TODO: set inital state
-
-	outlet.OnStateChanged(func(on bool) {
-		if on == true {
-			turnOn(ws)
-		} else {
-			turnOff(ws)
+	for _, d := range devices.d {
+		name := d.Devices[0]
+		info := model.Info{
+			Name:         name,
+			Manufacturer: "Intertechno",
+			Model:        "IT-1500",
 		}
-	})
 
+		outlet := accessory.NewOutlet(info)
+		outlet.SetOn(isOn(d.Values.State))
+		outlet.OnStateChanged(func(on bool) {
+			if on == true {
+				turnOn(ws, name)
+			} else {
+				turnOff(ws, name)
+			}
+		})
+
+		devices.o[name] = outlet
+		outlets = append(outlets, outlet.Accessory)
+	}
+	label := accessory.New(model.Info{Name: "Outlet2"})
 	pin := "00102003"
-	t, err := hap.NewIPTransport(hap.Config{Pin: pin}, outlet.Accessory)
+	t, err := hap.NewIPTransport(hap.Config{Pin: pin}, label, outlets...)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -154,4 +164,21 @@ func main() {
 
 	t.Start()
 
+	//go forever()
+	//select {} // block forever
+
+}
+
+func isOn(s string) bool {
+	if s == "on" {
+		return true
+	} else {
+		return false
+	}
+}
+
+func forever() {
+	for {
+		time.Sleep(time.Second)
+	}
 }
