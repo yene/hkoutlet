@@ -15,16 +15,14 @@ import (
 	"github.com/brutella/hc/model/accessory"
 )
 
-// Inspired by https://github.com/knalli/homebridge-pilight
-
 var origin = "http://localhost/"
-var url = "ws://192.168.28.134:5001/"
+var url = "ws://192.168.100.142:5001/"
 
 type Device struct {
 	Devices []string
 	Values  struct {
 		Timestamp int
-		State     string
+		State     string // "on" or "off"
 	}
 }
 
@@ -33,15 +31,23 @@ var devices struct {
 	d map[string]Device
 }
 
-func turnLightOn() {
+func turnOn(ws *websocket.Conn) {
 	log.Println("Turn Light On")
+	err := websocket.Message.Send(ws, "{\"action\":\"control\",\"code\":{\"device\":\"Switch1\",\"state\":\"on\"}}")
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func turnLightOff() {
+func turnOff(ws *websocket.Conn) {
 	log.Println("Turn Light Off")
+	err := websocket.Message.Send(ws, "{\"action\":\"control\",\"code\":{\"device\":\"Switch1\",\"state\":\"off\"}}")
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func listenForUpdates(ws *websocket.Conn, updates chan string) {
+func listenForUpdates(ws *websocket.Conn) {
 	for {
 		var message string
 		err := websocket.Message.Receive(ws, &message)
@@ -60,12 +66,8 @@ func listenForUpdates(ws *websocket.Conn, updates chan string) {
 			defer devices.Unlock()
 			name := d.Devices[0]
 			// We have to compare here for change I think
-
 			devices.d[name] = d
 		}
-
-		//updates <- message
-		// Send updates back via channel or aqquire mutex and modify em myself.
 	}
 }
 
@@ -98,7 +100,7 @@ func initalValues(ws *websocket.Conn) {
 		name := d.Devices[0]
 		devices.d[name] = d
 	}
-
+	debug()
 }
 
 func debug() {
@@ -118,34 +120,38 @@ func main() {
 
 	getConfig(ws)
 	initalValues(ws)
-	debug()
-
-	updates := make(chan string)
-	go listenForUpdates(ws, updates)
 
 	info := model.Info{
-		Name:         "Radio Controlled Outlet",
+		Name:         "Outlet",
 		Manufacturer: "Intertechno",
+		Model:        "IT-1500",
 	}
 
-	light := accessory.NewLightBulb(info)
-	light.OnStateChanged(func(on bool) {
+	// https://github.com/brutella/hc/blob/master/model/accessory/outlet.go
+	outlet := accessory.NewOutlet(info)
+	// TODO: set inital state
+
+	outlet.OnStateChanged(func(on bool) {
 		if on == true {
-			turnLightOn()
+			turnOn(ws)
 		} else {
-			turnLightOff()
+			turnOff(ws)
 		}
 	})
 
-	t, err := hap.NewIPTransport(hap.Config{Pin: "32191123"}, light.Accessory)
+	pin := "00102003"
+	t, err := hap.NewIPTransport(hap.Config{Pin: pin}, outlet.Accessory)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Pin is 32191123")
+	log.Println("Pin is ", pin)
+
+	go listenForUpdates(ws)
 
 	hap.OnTermination(func() {
 		t.Stop()
 	})
 
 	t.Start()
+
 }
