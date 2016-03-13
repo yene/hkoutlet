@@ -8,7 +8,6 @@ I am using Intertechno IT-1500 outlets together with a 433Mhz sender on the Rasp
 
 ## TODO
 * websocket should reconnect, always, test
-* updated to newest version on github
 
 ----
 * pretty pin dialog like homebridge, that works with iOS cam

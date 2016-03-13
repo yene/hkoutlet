@@ -76,7 +76,7 @@ func main() {
 		switches = append(switches, sw.Accessory)
 	}
 	// Fake accessory to set the device name. Name cannot contain space.
-	label := accessory.New(model.Info{Name: "Switch"})
+	label := accessory.New(model.Info{Name: "Switch"}, accessory.TypeSwitch)
 	t, err := hap.NewIPTransport(hap.Config{Pin: *pin}, label, switches...)
 	if err != nil {
 		log.Fatal(err)
