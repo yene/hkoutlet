@@ -7,7 +7,6 @@ I am using Intertechno IT-1500 outlets together with a 433Mhz sender on the Rasp
 ![pi with 433](pi.jpg)
 
 ## TODO
-* change websocket code to gorilla websocket
 * change outlet to switch
 * test with siri
 * websocket should reconnect, always, test

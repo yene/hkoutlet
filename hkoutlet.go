@@ -27,7 +27,70 @@ type Device struct {
 var devices struct {
 	sync.Mutex
 	d map[string]Device
-	o map[string]*accessory.Outlet
+	o map[string]*accessory.Switch
+}
+
+var addr = flag.String("addr", "192.168.1.15:5001", "Pilight daemon IP")
+
+func main() {
+	flag.Parse()
+
+	devices.d = make(map[string]Device)
+	devices.o = make(map[string]*accessory.Switch)
+
+	u := url.URL{Scheme: "ws", Host: *addr, Path: ""}
+	log.Printf("connecting to %s", u.String())
+
+	ws, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+
+	if err != nil {
+		log.Println("reconnect here")
+	}
+	defer ws.Close()
+
+	getConfig(ws)
+	initalValues(ws)
+
+	switches := make([]*accessory.Accessory, 0)
+
+	for _, d := range devices.d {
+		name := d.Devices[0]
+		info := model.Info{
+			Name:         name,
+			Manufacturer: "Intertechno",
+			Model:        "IT-1500",
+		}
+
+		sw := accessory.NewSwitch(info)
+		sw.SetOn(isOn(d.Values.State))
+		sw.OnStateChanged(func(on bool) {
+			if on == true {
+				turnOn(ws, name)
+			} else {
+				turnOff(ws, name)
+			}
+		})
+
+		devices.o[name] = sw
+		switches = append(switches, sw.Accessory)
+	}
+	// Fake accessory to set the device name. Name cannot contain space.
+	label := accessory.New(model.Info{Name: "Switch"})
+	pin := "00102003"
+	t, err := hap.NewIPTransport(hap.Config{Pin: pin}, label, switches...)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Pin is", pin)
+
+	go listenForUpdates(ws)
+
+	hap.OnTermination(func() {
+		t.Stop()
+	})
+
+	t.Start()
+
 }
 
 func turnOn(ws *websocket.Conn, name string) {
@@ -103,68 +166,6 @@ func debug() {
 	for _, d := range devices.d {
 		log.Printf("Device: %s %s\n", d.Devices[0], d.Values.State)
 	}
-}
-
-var addr = flag.String("addr", "192.168.1.15:5001", "http service address")
-
-func main() {
-	flag.Parse()
-
-	devices.d = make(map[string]Device)
-	devices.o = make(map[string]*accessory.Outlet)
-
-	u := url.URL{Scheme: "ws", Host: *addr, Path: ""}
-	log.Printf("connecting to %s", u.String())
-
-	ws, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-
-	if err != nil {
-		log.Println("reconnect here")
-	}
-	defer ws.Close()
-
-	getConfig(ws)
-	initalValues(ws)
-
-	outlets := make([]*accessory.Accessory, 0)
-
-	for _, d := range devices.d {
-		name := d.Devices[0]
-		info := model.Info{
-			Name:         name,
-			Manufacturer: "Intertechno",
-			Model:        "IT-1500",
-		}
-
-		outlet := accessory.NewOutlet(info)
-		outlet.SetOn(isOn(d.Values.State))
-		outlet.OnStateChanged(func(on bool) {
-			if on == true {
-				turnOn(ws, name)
-			} else {
-				turnOff(ws, name)
-			}
-		})
-
-		devices.o[name] = outlet
-		outlets = append(outlets, outlet.Accessory)
-	}
-	label := accessory.New(model.Info{Name: "Outlet"})
-	pin := "00102003"
-	t, err := hap.NewIPTransport(hap.Config{Pin: pin}, label, outlets...)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Pin is", pin)
-
-	go listenForUpdates(ws)
-
-	hap.OnTermination(func() {
-		t.Stop()
-	})
-
-	t.Start()
-
 }
 
 func isOn(s string) bool {
