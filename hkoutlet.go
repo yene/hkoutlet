@@ -31,6 +31,7 @@ var devices struct {
 }
 
 var addr = flag.String("addr", "192.168.1.15:5001", "Pilight daemon IP")
+var pin = flag.String("pin", "00102003", "HomeKit pin (8 digits)")
 
 func main() {
 	flag.Parse()
@@ -76,12 +77,11 @@ func main() {
 	}
 	// Fake accessory to set the device name. Name cannot contain space.
 	label := accessory.New(model.Info{Name: "Switch"})
-	pin := "00102003"
-	t, err := hap.NewIPTransport(hap.Config{Pin: pin}, label, switches...)
+	t, err := hap.NewIPTransport(hap.Config{Pin: *pin}, label, switches...)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Pin is", pin)
+	log.Println("Pin is", *pin)
 
 	go listenForUpdates(ws)
 
