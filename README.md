@@ -6,11 +6,21 @@ I am using Intertechno IT-1500 outlets together with a 433Mhz sender on the Rasp
 
 ![pi with 433](pi.jpg)
 
-
 ## TODO
-* pretty pin dialog like homebridge, that works with cam
+* change websocket code to gorilla websocket
+* change outlet to switch
+* test with siri
+* websocket should reconnect, always, test
+
+
+----
+* pretty pin dialog like homebridge, that works with iOS cam
 * use built in JSON methods https://github.com/golang-samples/websocket/blob/master/websocket-chat/src/chat/client.go#L101
 * Remove unneeded map
+* Integrate the pilight project, the part I need directly here.
+* when refused keep retrying to reconnect but inform the user
+* when connection refused don't fail, reconnect
+* compare project with homebridge pilight
 
 ## License
 CC BY Yannick Weiss
@@ -28,9 +38,8 @@ CC BY Yannick Weiss
 ### Change Value
 `{"action":"control","code":{"device":"Switch1","state":"on"}}`
 
-### Questions
+### Open Questions
 What does type 1 mean in the update?
-
 
 ## Credits
 * https://github.com/knalli/homebridge-pilight

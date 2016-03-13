@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/net/websocket"
 
@@ -14,9 +15,6 @@ import (
 	"github.com/brutella/hc/model"
 	"github.com/brutella/hc/model/accessory"
 )
-
-var origin = "http://localhost/"
-var url = "ws://192.168.100.142:5001/"
 
 type Device struct {
 	Devices []string
@@ -51,7 +49,8 @@ func listenForUpdates(ws *websocket.Conn) {
 		var message string
 		err := websocket.Message.Receive(ws, &message)
 		if err != nil {
-			log.Fatal("Error::: %s\n", err.Error())
+			fmt.Println("Error::: %s\n", err.Error())
+			continue
 		}
 
 		if strings.Contains(message, "\"origin\":\"update\"") {
@@ -111,10 +110,14 @@ func main() {
 	devices.d = make(map[string]Device)
 	devices.o = make(map[string]*accessory.Outlet)
 
-	// TODO: add and test reconnect
+	var origin = "http://localhost/"
+	var url = "ws://192.168.1.15:5001/"
 	ws, err := websocket.Dial(url, "", origin)
-	if err != nil {
-		log.Fatal(err)
+	// for loop with time.sleep
+	for err != nil {
+		fmt.Println("could not connect, retry in 5")
+		time.Sleep(time.Second * 5)
+		ws, err = websocket.Dial(url, "", origin)
 	}
 	fmt.Println("connected to ", url)
 
@@ -144,7 +147,7 @@ func main() {
 		devices.o[name] = outlet
 		outlets = append(outlets, outlet.Accessory)
 	}
-	label := accessory.New(model.Info{Name: "Outlet2"})
+	label := accessory.New(model.Info{Name: "Outlet"})
 	pin := "00102003"
 	t, err := hap.NewIPTransport(hap.Config{Pin: pin}, label, outlets...)
 	if err != nil {
