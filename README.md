@@ -6,18 +6,10 @@ I am using Intertechno IT-1500 outlets together with a 433Mhz sender on the Rasp
 
 ![pi with 433](pi.jpg)
 
-## TODO
-* use built in JSON methods https://github.com/golang-samples/websocket/blob/master/websocket-chat/src/chat/client.go#L101
-* Remove unneeded map
-* Integrate the pilight project, the part I need directly here.
-* when refused keep retrying to reconnect but inform the user
-* when connection refused don't fail, reconnect
-* compare project with homebridge pilight
-* find a way to silence ipv6 warning
-* handle crl-c -> see example code on signals https://github.com/gorilla/websocket/blob/master/examples/echo/client.go
+## Bug NewIPTransport Bridge name
+"The first accessory acts as the HomeKit bridge"
 
-## Bug NewIPTransport name
-If the name contains space it does not work. Check in the source if it works without a fake device. Maybe the API is wrong.
+If the name contains space it does not work. It works in HomeBridge.
 
 ## License
 CC BY Yannick Weiss
