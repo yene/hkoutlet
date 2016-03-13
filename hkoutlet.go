@@ -2,14 +2,14 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"flag"
 	"io/ioutil"
 	"log"
+	"net/url"
 	"strings"
 	"sync"
-	"time"
 
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 
 	"github.com/brutella/hc/hap"
 	"github.com/brutella/hc/model"
@@ -31,14 +31,14 @@ var devices struct {
 }
 
 func turnOn(ws *websocket.Conn, name string) {
-	err := websocket.Message.Send(ws, "{\"action\":\"control\",\"code\":{\"device\":\""+name+"\",\"state\":\"on\"}}")
+	err := ws.WriteMessage(websocket.TextMessage, []byte("{\"action\":\"control\",\"code\":{\"device\":\""+name+"\",\"state\":\"on\"}}"))
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
 func turnOff(ws *websocket.Conn, name string) {
-	err := websocket.Message.Send(ws, "{\"action\":\"control\",\"code\":{\"device\":\""+name+"\",\"state\":\"off\"}}")
+	err := ws.WriteMessage(websocket.TextMessage, []byte("{\"action\":\"control\",\"code\":{\"device\":\""+name+"\",\"state\":\"off\"}}"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,16 +46,15 @@ func turnOff(ws *websocket.Conn, name string) {
 
 func listenForUpdates(ws *websocket.Conn) {
 	for {
-		var message string
-		err := websocket.Message.Receive(ws, &message)
+		_, message, err := ws.ReadMessage()
 		if err != nil {
-			fmt.Println("Error::: %s\n", err.Error())
+			log.Println("Error::: %s", err.Error())
 			continue
 		}
 
-		if strings.Contains(message, "\"origin\":\"update\"") {
+		if strings.Contains(string(message), "\"origin\":\"update\"") {
 			var d Device
-			if err := json.Unmarshal([]byte(message), &d); err != nil {
+			if err := json.Unmarshal(message, &d); err != nil {
 				log.Fatal(err)
 			}
 
@@ -70,27 +69,26 @@ func listenForUpdates(ws *websocket.Conn) {
 }
 
 func getConfig(ws *websocket.Conn) {
-	err := websocket.Message.Send(ws, "{\"action\":\"request config\"}")
+	err := ws.WriteMessage(websocket.TextMessage, []byte("{\"action\":\"request config\"}"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	var answer []byte
-	websocket.Message.Receive(ws, &answer)
-	err = ioutil.WriteFile("config.json", answer, 0644)
+	_, message, err := ws.ReadMessage()
+	err = ioutil.WriteFile("config.json", message, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
+
 }
 
 func initalValues(ws *websocket.Conn) {
-	err := websocket.Message.Send(ws, "{\"action\":\"request values\"}")
+	err := ws.WriteMessage(websocket.TextMessage, []byte("{\"action\":\"request values\"}"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	var answer []byte
-	websocket.Message.Receive(ws, &answer)
+	_, message, err := ws.ReadMessage()
 	var ds []Device
-	if err := json.Unmarshal(answer, &ds); err != nil {
+	if err := json.Unmarshal(message, &ds); err != nil {
 		log.Fatal(err)
 	}
 
@@ -98,28 +96,32 @@ func initalValues(ws *websocket.Conn) {
 		name := d.Devices[0]
 		devices.d[name] = d
 	}
+
 }
 
 func debug() {
 	for _, d := range devices.d {
-		fmt.Printf("Device: %s %s\n", d.Devices[0], d.Values.State)
+		log.Printf("Device: %s %s\n", d.Devices[0], d.Values.State)
 	}
 }
 
+var addr = flag.String("addr", "192.168.1.15:5001", "http service address")
+
 func main() {
+	flag.Parse()
+
 	devices.d = make(map[string]Device)
 	devices.o = make(map[string]*accessory.Outlet)
 
-	var origin = "http://localhost/"
-	var url = "ws://192.168.1.15:5001/"
-	ws, err := websocket.Dial(url, "", origin)
-	// for loop with time.sleep
-	for err != nil {
-		fmt.Println("could not connect, retry in 5")
-		time.Sleep(time.Second * 5)
-		ws, err = websocket.Dial(url, "", origin)
+	u := url.URL{Scheme: "ws", Host: *addr, Path: ""}
+	log.Printf("connecting to %s", u.String())
+
+	ws, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+
+	if err != nil {
+		log.Println("reconnect here")
 	}
-	fmt.Println("connected to ", url)
+	defer ws.Close()
 
 	getConfig(ws)
 	initalValues(ws)
@@ -153,7 +155,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Pin is ", pin)
+	log.Println("Pin is", pin)
 
 	go listenForUpdates(ws)
 
@@ -162,6 +164,7 @@ func main() {
 	})
 
 	t.Start()
+
 }
 
 func isOn(s string) bool {

@@ -11,7 +11,7 @@ I am using Intertechno IT-1500 outlets together with a 433Mhz sender on the Rasp
 * change outlet to switch
 * test with siri
 * websocket should reconnect, always, test
-
+* pin as flag
 
 ----
 * pretty pin dialog like homebridge, that works with iOS cam
@@ -21,6 +21,10 @@ I am using Intertechno IT-1500 outlets together with a 433Mhz sender on the Rasp
 * when refused keep retrying to reconnect but inform the user
 * when connection refused don't fail, reconnect
 * compare project with homebridge pilight
+* find a way to silence ipv6 warning
+
+## Bug NewIPTransport name
+If the name contains space it does not work. Check in the source if it works without a fake device. Maybe the API is wrong.
 
 ## License
 CC BY Yannick Weiss
@@ -39,7 +43,8 @@ CC BY Yannick Weiss
 `{"action":"control","code":{"device":"Switch1","state":"on"}}`
 
 ### Open Questions
-What does type 1 mean in the update?
+* pilight: What does type 1 mean in the update?
+* How does a websocket require credentials?
 
 ## Credits
 * https://github.com/knalli/homebridge-pilight
