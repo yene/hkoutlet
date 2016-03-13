@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"strings"
@@ -18,19 +17,13 @@ import (
 	"github.com/brutella/hc/model/accessory"
 )
 
-type Device struct {
-	Devices []string
-	Values  struct {
-		Timestamp int
-		State     string // "on" or "off"
-	}
-}
-
 var devices struct {
 	sync.Mutex
 	d map[string]Device
 	o map[string]*accessory.Switch
 }
+
+var config PilightConfig
 
 var addr = flag.String("addr", "192.168.1.15:5001", "Pilight daemon IP")
 var pin = flag.String("pin", "00102003", "HomeKit pin (8 digits)")
@@ -61,6 +54,10 @@ func main() {
 
 	for _, d := range devices.d {
 		name := d.Devices[0]
+		// Use the GUI name if defined.
+		if val, ok := config.Gui[name]; ok {
+			name = val.Name
+		}
 		info := model.Info{
 			Name:         name,
 			Manufacturer: "Intertechno",
@@ -81,7 +78,7 @@ func main() {
 		switches = append(switches, sw.Accessory)
 	}
 	// Fake accessory to set the device name. Name cannot contain space.
-	label := accessory.New(model.Info{Name: "Switch"}, accessory.TypeSwitch)
+	label := accessory.New(model.Info{Name: "Switch2"}, accessory.TypeSwitch)
 	t, err := hap.NewIPTransport(hap.Config{Pin: *pin}, label, switches...)
 	if err != nil {
 		log.Fatal(err)
@@ -135,7 +132,6 @@ func listenForUpdates(ws *websocket.Conn) {
 			devices.Lock()
 			devices.d[name] = d
 			devices.o[name].SetOn(isOn(d.Values.State))
-			debug()
 			devices.Unlock()
 		}
 
@@ -148,8 +144,12 @@ func getConfig(ws *websocket.Conn) {
 		log.Fatal(err)
 	}
 	_, message, err := ws.ReadMessage()
-	err = ioutil.WriteFile("config.json", message, 0644)
+	//err = ioutil.WriteFile("config.json", message, 0644)
 	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := json.Unmarshal(message, &config); err != nil {
 		log.Fatal(err)
 	}
 
@@ -195,4 +195,18 @@ func isOn(s string) bool {
 	} else {
 		return false
 	}
+}
+
+type Device struct {
+	Devices []string
+	Values  struct {
+		Timestamp int
+		State     string // "on" or "off"
+	}
+}
+
+type PilightConfig struct {
+	Gui map[string]struct {
+		Name string `json:"name"`
+	} `json:"gui"`
 }
