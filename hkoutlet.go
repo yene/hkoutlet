@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 
@@ -44,9 +45,12 @@ func main() {
 
 	ws, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 
-	if err != nil {
-		log.Println("reconnect here")
+	for err != nil {
+		log.Println("error:", err.Error())
+		time.Sleep(time.Second * 3)
+		ws, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
 	}
+
 	defer ws.Close()
 
 	getConfig(ws)
@@ -110,8 +114,13 @@ func turnOff(ws *websocket.Conn, name string) {
 func listenForUpdates(ws *websocket.Conn) {
 	for {
 		_, message, err := ws.ReadMessage()
-		if err != nil {
-			log.Println("Error::: %s", err.Error())
+		if err != nil { // TODO: this error should be checekd for disconnect.
+			for err != nil {
+				log.Println("error:", err.Error())
+				time.Sleep(time.Second * 3)
+				u := url.URL{Scheme: "ws", Host: *addr, Path: ""}
+				ws, _, err = websocket.DefaultDialer.Dial(u.String(), nil)
+			}
 			continue
 		}
 
@@ -125,6 +134,7 @@ func listenForUpdates(ws *websocket.Conn) {
 			devices.Lock()
 			devices.d[name] = d
 			devices.o[name].SetOn(isOn(d.Values.State))
+			debug()
 			devices.Unlock()
 		}
 
