@@ -7,8 +7,6 @@ I am using Intertechno IT-1500 outlets together with a 433Mhz sender on the Rasp
 ![pi with 433](pi.jpg)
 
 ## TODO
-
-* pretty pin dialog like homebridge, that works with iOS cam
 * use built in JSON methods https://github.com/golang-samples/websocket/blob/master/websocket-chat/src/chat/client.go#L101
 * Remove unneeded map
 * Integrate the pilight project, the part I need directly here.
@@ -40,6 +38,7 @@ CC BY Yannick Weiss
 ### Open Questions
 * pilight: What does type 1 mean in the update?
 * How does a websocket require credentials?
+* Can pilight give the devices names which siri can use.
 
 ## Credits
 * https://github.com/knalli/homebridge-pilight

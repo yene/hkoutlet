@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/url"
@@ -85,7 +86,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Pin is", *pin)
+	printPin(*pin)
 
 	go listenForUpdates(ws)
 
@@ -169,7 +170,17 @@ func initalValues(ws *websocket.Conn) {
 		name := d.Devices[0]
 		devices.d[name] = d
 	}
+}
 
+func printPin(pin string) {
+	fmt.Println("Scan this code with your HomeKit App on your iOS device to pair with Homebridge:")
+
+	pin = pin[0:3] + "-" + pin[3:5] + "-" + pin[5:]
+	fmt.Printf("\x1b[30;47m%s\x1b[0m\n", "                       ")
+	fmt.Printf("\x1b[30;47m%s\x1b[0m\n", "    ┌────────────┐     ")
+	fmt.Printf("\x1b[30;47m%s\x1b[0m\n", "    │ "+pin+" │     ")
+	fmt.Printf("\x1b[30;47m%s\x1b[0m\n", "    └────────────┘     ")
+	fmt.Printf("\x1b[30;47m%s\x1b[0m\n", "                       ")
 }
 
 func debug() {
