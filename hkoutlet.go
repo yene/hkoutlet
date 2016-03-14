@@ -27,6 +27,7 @@ var config PilightConfig
 
 var addr = flag.String("addr", "192.168.1.15:5001", "Pilight daemon IP")
 var pin = flag.String("pin", "00102003", "HomeKit pin (8 digits)")
+var bridgeName = flag.String("name", "Switch", "Bridgename (no space)")
 
 func main() {
 	flag.Parse()
@@ -78,7 +79,7 @@ func main() {
 		switches = append(switches, sw.Accessory)
 	}
 	// Fake accessory to set the device name. Name cannot contain space.
-	label := accessory.New(model.Info{Name: "Switch2"}, accessory.TypeSwitch)
+	label := accessory.New(model.Info{Name: *bridgeName}, accessory.TypeSwitch)
 	t, err := hap.NewIPTransport(hap.Config{Pin: *pin}, label, switches...)
 	if err != nil {
 		log.Fatal(err)
