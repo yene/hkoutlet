@@ -54,9 +54,10 @@ func main() {
 	switches := make([]*accessory.Accessory, 0)
 
 	for _, d := range devices.d {
+		id := d.Devices[0]
 		name := d.Devices[0]
 		// Use the GUI name if defined.
-		if val, ok := config.Gui[name]; ok {
+		if val, ok := config.Gui[id]; ok {
 			name = val.Name
 		}
 		info := model.Info{
@@ -69,13 +70,13 @@ func main() {
 		sw.SetOn(isOn(d.Values.State))
 		sw.OnStateChanged(func(on bool) {
 			if on == true {
-				turnOn(ws, name)
+				turnOn(ws, id)
 			} else {
-				turnOff(ws, name)
+				turnOff(ws, id)
 			}
 		})
 
-		devices.o[name] = sw
+		devices.o[id] = sw
 		switches = append(switches, sw.Accessory)
 	}
 	// Fake accessory to set the device name. Name cannot contain space.
@@ -129,10 +130,10 @@ func listenForUpdates(ws *websocket.Conn) {
 				log.Fatal(err)
 			}
 
-			name := d.Devices[0]
+			id := d.Devices[0]
 			devices.Lock()
-			devices.d[name] = d
-			devices.o[name].SetOn(isOn(d.Values.State))
+			devices.d[id] = d
+			devices.o[id].SetOn(isOn(d.Values.State))
 			devices.Unlock()
 		}
 
@@ -168,8 +169,8 @@ func initalValues(ws *websocket.Conn) {
 	}
 
 	for _, d := range ds {
-		name := d.Devices[0]
-		devices.d[name] = d
+		id := d.Devices[0]
+		devices.d[id] = d
 	}
 }
 
